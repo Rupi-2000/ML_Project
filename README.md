@@ -33,7 +33,7 @@ Nach erfolgreicher Ausführung aller Skripte ergibt sich folgende Struktur:
 data/
 ├── doclaynet_core/        # Original-Download (Bilder & COCO-JSONs)
 ├── doclaynet_extra/       # Original-Download (Text-JSONs)
-├── yolo_core/             # Output für Vision-Modelle (YOLOv8)
+├── yolo_dataset/          # Output für Vision-Modelle (YOLOv8)
 │   ├── train/             # images/ & labels/
 │   ├── val/
 │   └── test/
@@ -45,12 +45,6 @@ data/
 
 ---
 
-## 🛠️ Voraussetzungen
-
-* **Python:** ≥ 3.8
-* **Abhängigkeiten:** ausschließlich Standard-Python-Bibliotheken (keine schweren externen Dependencies)
-
----
 
 ## 🔧 Installation
 
@@ -59,6 +53,47 @@ data/
 git clone https://github.com/Rupi-2000/ML_Project.git
 cd ML_Project
 ```
+---
+
+## 🧪 Environment Setup (Recommended)
+
+Empfohlen wird die Verwendung eines Python Virtual Environments zur
+Gewährleistung der Reproduzierbarkeit.
+
+**Python-Version:** ≥ 3.12 (getestet mit Python 3.12.12)
+
+```bash
+python -m venv .venv
+source .venv/bin/activate   # Windows: .venv\Scripts\activate
+pip install --upgrade pip
+
+# Pipeline A (Text)
+pip install -e .[core]
+
+# Pipeline B + C (Text + Vision)
+pip install -e .[core,vision]
+
+# Alles inkl. Entwicklung
+pip install -e .[core,vision,dev]
+```
+The required dependencies are defined in pyproject.toml.
+
+---
+
+## Wichtiger Hinweis (Torch & CUDA)
+
+Absichtlich nicht in TOML enthalten:
+
+```bash
+# CPU
+pip install torch torchvision torchaudio
+
+# CUDA (z. B. 12.1)
+pip install torch torchvision torchaudio \
+  --index-url https://download.pytorch.org/whl/cu121
+```
+
+➡️ Das ist Best Practice, besonders bei Python 3.12.
 
 ---
 
