@@ -39,103 +39,142 @@ def iter_json_files():
 
 
 # ============================================================
-# Pass 1: determine document split
+# determine document split
 # ============================================================
 
-def build_doc_split():
-    pdf_ids = set()
+
+def collect_pdf_stats():
+    pdf_pages = defaultdict(int)
+    pdf_label = {}
 
     for json_file in iter_json_files():
         with open(json_file, encoding="utf-8") as f:
             data = json.load(f)
 
         meta = data.get("metadata", {})
-        pdf_name = meta.get("original_filename")
+        pdf = meta.get("original_filename")
+        label = meta.get("doc_category")
 
-        if pdf_name:
-            pdf_ids.add(pdf_name)
+        if pdf and label in TARGET_CLASSES:
+            pdf_pages[pdf] += 1
+            pdf_label[pdf] = label
 
-    pdf_ids = list(pdf_ids)
-    random.shuffle(pdf_ids)
+    return pdf_pages, pdf_label
 
-    n = len(pdf_ids)
-    n_train = int(n * TRAIN_RATIO)
-    n_val = int(n * VAL_RATIO)
+def build_pdf_split_balance():
+    pdf_pages, pdf_label = collect_pdf_stats()
+    splits = {"train": set(), "val": set(), "test": set()}
+    
+    # Seiten-Zähler pro Split und Klasse initialisieren
+    # Struktur: { "train": { "manuals": 120, ... }, "val": {...} }
+    current_counts = {s: defaultdict(int) for s in splits}
 
-    return {
-        "train": set(pdf_ids[:n_train]),
-        "val": set(pdf_ids[n_train:n_train + n_val]),
-        "test": set(pdf_ids[n_train + n_val:]),
-    }
+    for label in TARGET_CLASSES:
+        # PDFs dieser Klasse nach Größe absteigend sortieren
+        # Das verhindert, dass dicke "Brocken" am Ende die Bilanz ruinieren
+        pdfs_in_class = [p for p in pdf_label if pdf_label[p] == label]
+        pdfs_in_class.sort(key=lambda p: pdf_pages[p], reverse=True)
+        
+        total_pages_class = sum(pdf_pages[p] for p in pdfs_in_class)
+        
+        # Zielwerte für diese Klasse
+        targets = {
+            "train": total_pages_class * TRAIN_RATIO,
+            "val": total_pages_class * VAL_RATIO,
+            "test": total_pages_class * (1.0 - TRAIN_RATIO - VAL_RATIO)
+        }
+
+        for pdf in pdfs_in_class:
+            pages = pdf_pages[pdf]
+            
+            # Finde den Split, der im Vergleich zu seinem Target 
+            # aktuell am meisten "unterversorgt" ist
+            best_split = min(
+                ["train", "val", "test"],
+                key=lambda s: current_counts[s][label] / targets[s] if targets[s] > 0 else 1
+            )
+            
+            splits[best_split].add(pdf)
+            current_counts[best_split][label] += pages
+
+    return splits
 
 
 # ============================================================
-# Pass 2: stream → CSV
+# stream → CSV
 # ============================================================
 
-def write_split_csv(split_name, doc_ids):
-    out_path = OUT_DIR / f"{split_name}.csv"
-    out_path.parent.mkdir(parents=True, exist_ok=True)
+def write_split_csv(split_assignment):
+    """
+    split_assignment: Dict { "original_filename": "train" (oder "val", "test") }
+    """
+    # Alle Writer vorbereiten
+    writers = {}
+    handles = {}
+    
+    # Ordner erstellen und Files öffnen
+    for split_name in ["train", "val", "test"]:
+        out_path = OUT_DIR / f"{split_name}.csv"
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        
+        f = open(out_path, "w", newline="", encoding="utf-8")
+        w = csv.DictWriter(f, fieldnames=["doc_id", "original_filename", "page_no", "label", "text"])
+        w.writeheader()
+        
+        handles[split_name] = f
+        writers[split_name] = w
 
-    with open(out_path, "w", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(
-            f,
-            fieldnames=[
-                "doc_id",
-                "original_filename",
-                "page_no",
-                "label",
-                "text"
-            ]
-        )
-        writer.writeheader()
+    count = 0
+    skipped = 0
 
-        count = 0
+    print("Starting single-pass writing...")
 
-        for json_file in iter_json_files():
-            with open(json_file, encoding="utf-8") as jf:
-                data = json.load(jf)
+    # Nur EINMAL über alle JSONs iterieren
+    for json_file in iter_json_files():
+        with open(json_file, encoding="utf-8") as jf:
+            data = json.load(jf)
 
-            meta = data.get("metadata", {})
-            original_filename = meta.get("original_filename")
+        meta = data.get("metadata", {})
+        original_filename = meta.get("original_filename")
+        label = meta.get("doc_category")
 
-            if original_filename not in doc_ids:
-                continue
+        # Check: Ist das File relevant?
+        # Wir prüfen nur, ob der Filename in unserem Assignment-Dict ist.
+        # Das impliziert bereits, dass das Label korrekt war (aus Pass 1).
+        if original_filename not in split_assignment:
+            skipped += 1
+            continue
 
-            with open(json_file, encoding="utf-8") as jf:
-                data = json.load(jf)
+        # Bestimmen, in welchen Split es gehört
+        target_split = split_assignment[original_filename]
+        
+        texts = [
+            c.get("text", "")
+            for c in data.get("cells", [])
+            if c.get("text") and c.get("text").strip()
+        ]
 
-            meta = data.get("metadata", {})
-            original_filename = meta.get("original_filename")
-            label = meta.get("doc_category")
+        if not texts:
+            continue
 
-            if label not in TARGET_CLASSES:
-                continue
+        # In den korrekten Writer schreiben
+        writers[target_split].writerow({
+            "doc_id": json_file.stem,
+            "original_filename": original_filename,
+            "page_no": meta.get("page_no"),
+            "label": label,
+            "text": normalize(" ".join(texts)),
+        })
 
-            page_no = meta.get("page_no")
+        count += 1
+        if count % 10000 == 0:
+            print(f"Processed {count} pages...")
 
-            texts = [
-                c.get("text", "")
-                for c in data.get("cells", [])
-                if c.get("text") and c.get("text").strip()
-            ]
+    # Aufräumen
+    for f in handles.values():
+        f.close()
 
-            if not texts:
-                continue
-
-            writer.writerow({
-                "doc_id": json_file.stem,
-                "original_filename": original_filename,
-                "page_no": page_no,
-                "label": label,
-                "text": normalize(" ".join(texts)),
-            })
-
-            count += 1
-            if count % 5000 == 0:
-                print(f"[{split_name}] {count} pages written")
-
-        print(f"[OK] {split_name}: {count} samples")
+    print(f"[FINISHED] Processed {count} pages. Skipped {skipped} (irrelevant class/empty).")
 
 
 # ============================================================
@@ -146,14 +185,22 @@ def main():
     print("Preparing DocLayNet EXTRA (optimized, streaming)")
     print("------------------------------------------------")
 
-    split = build_doc_split()
+    # 1. Split berechnen (wie bisher)
+    splits = build_pdf_split_balance()
+    
+    # 2. Umwandeln in ein Lookup-Dict für O(1) Zugriff:
+    # { "filename1.pdf": "train", "filename2.pdf": "val", ... }
+    file_to_split = {}
+    for split_name, filenames in splits.items():
+        for fname in filenames:
+            file_to_split[fname] = split_name
 
-    for name, docs in split.items():
-        write_split_csv(name, docs)
+    print(f"Split determined. Mapping contains {len(file_to_split)} PDFs.")
 
-    print("\n[FINISHED]")
+    # 3. Alles in einem Rutsch schreiben
+    write_split_csv(file_to_split)
+
     print("Output:", OUT_DIR.resolve())
-
 
 if __name__ == "__main__":
     main()
