@@ -2,60 +2,73 @@ from ultralytics import YOLO
 from pathlib import Path
 import torch
 
-# -----------------------------
-# GPU Check
-# -----------------------------
-assert torch.cuda.is_available(), "CUDA nicht verfügbar – NVIDIA Treiber prüfen!"
-print("GPU:", torch.cuda.get_device_name(0))
 
-# -----------------------------
-# Konfiguration
-# -----------------------------
-DATA_YAML = r"./data/yolo_dataset/data.yaml"
-MODEL_WEIGHTS = "yolov8n.pt"   # Pretrained weights
-IMG_SIZE = 640
-EPOCHS = 20
-BATCH = 16
-DEVICE = 0                  # 0 = erste GPU, "cpu" für CPU
-PROJECT_DIR = "runs/layout"
-RUN_NAME = "doclaynet_yolov8n"
+def main():
+    # -----------------------------
+    # Device Handling
+    # -----------------------------
+    print("Torch:", torch.__version__)
+    print("CUDA verfügbar:", torch.cuda.is_available())
+    print("CUDA Version:", torch.version.cuda)
 
-# -----------------------------
-# Sicherheitschecks
-# -----------------------------
-assert Path(DATA_YAML).exists(), f"data.yaml nicht gefunden: {DATA_YAML}"
+    if torch.cuda.is_available():
+        device = 0
+        print("GPU:", torch.cuda.get_device_name(0))
+    else:
+        device = "cpu"
+        print("WARNUNG: CUDA nicht verfügbar – Training läuft auf CPU")
 
-# -----------------------------
-# Modell laden
-# -----------------------------
-model = YOLO(MODEL_WEIGHTS)
+    # -----------------------------
+    # Konfiguration
+    # -----------------------------
+    DATA_YAML = r"./data/yolo_dataset/data.yaml"
+    MODEL_WEIGHTS = "yolov8n.pt"
+    IMG_SIZE = 640
+    EPOCHS = 20
+    BATCH = 16
+    PROJECT_DIR = "runs/layout"
+    RUN_NAME = "doclaynet_yolov8n"
 
-# -----------------------------
-# Training
-# -----------------------------
-train_results = model.train(
-    data=DATA_YAML,
-    imgsz=IMG_SIZE,
-    epochs=EPOCHS,
-    batch=BATCH,
-    device=DEVICE,
-    project=PROJECT_DIR,
-    name=RUN_NAME,
-    pretrained=True,
-    verbose=True
-)
+    # -----------------------------
+    # Checks
+    # -----------------------------
+    assert Path(DATA_YAML).exists(), f"data.yaml nicht gefunden: {DATA_YAML}"
 
-print("Training abgeschlossen.")
-print(train_results)
+    # -----------------------------
+    # Modell laden
+    # -----------------------------
+    model = YOLO(MODEL_WEIGHTS)
 
-# -----------------------------
-# Validation (Val-Split)
-# -----------------------------
-val_results = model.val(
-    data=DATA_YAML,
-    imgsz=IMG_SIZE,
-    device=DEVICE
-)
+    # -----------------------------
+    # Training
+    # -----------------------------
+    train_results = model.train(
+        data=DATA_YAML,
+        imgsz=IMG_SIZE,
+        epochs=EPOCHS,
+        batch=BATCH,
+        device=device,
+        project=PROJECT_DIR,
+        name=RUN_NAME,
+        pretrained=True,
+        workers=0
+    )
 
-print("\nValidation-Ergebnisse (val split):")
-print(val_results)
+    print("Training abgeschlossen.")
+    print(train_results)
+
+    # -----------------------------
+    # Validation
+    # -----------------------------
+    val_results = model.val(
+        data=DATA_YAML,
+        imgsz=IMG_SIZE,
+        device=device
+    )
+
+    print("\nValidation-Ergebnisse (val split):")
+    print(val_results)
+
+
+if __name__ == "__main__":
+    main()
