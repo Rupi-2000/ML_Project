@@ -6,7 +6,7 @@ from sklearn.metrics import classification_report, confusion_matrix
 # -----------------------------
 # Base path
 # -----------------------------
-BASE_DIR = Path(".data/yolo_dataset")
+BASE_DIR = Path("./data/yolo_dataset")
 
 # -----------------------------
 # Helper: load split

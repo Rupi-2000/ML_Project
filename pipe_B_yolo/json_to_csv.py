@@ -27,16 +27,18 @@ def convert(split: str):
     for e in entries:
         page_id = Path(e["file_name"]).stem
         doc_class = e["doc_category"]
+        page_no = e["page_no"]
 
         rows.append({
             "page_id": page_id,
-            "doc_class": doc_class
+            "doc_class": doc_class,
+            "page_no": page_no
         })
 
     output_dir.mkdir(parents=True, exist_ok=True)
 
     with open(output_csv, "w", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(f, fieldnames=["page_id", "doc_class"])
+        writer = csv.DictWriter(f, fieldnames=["page_id", "page_no", "doc_class"])
         writer.writeheader()
         writer.writerows(rows)
 
