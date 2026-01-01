@@ -1,0 +1,45 @@
+[train] merged pages: 68881
+[val] merged pages: 6458
+
+============================================================
+Model: LogReg (Text + Layout)
+============================================================
+Accuracy: 0.9684
+
+                      precision    recall  f1-score   support
+
+   financial_reports       0.97      0.98      0.97      1731
+  government_tenders       0.98      0.95      0.96       333
+laws_and_regulations       0.97      0.94      0.96      1114
+             manuals       0.98      0.98      0.98      1853
+             patents       0.94      0.96      0.95       483
+ scientific_articles       0.95      0.98      0.96       944
+
+            accuracy                           0.97      6458
+           macro avg       0.96      0.96      0.96      6458
+        weighted avg       0.97      0.97      0.97      6458
+
+
+============================================================
+Model: RF (Text + Layout)
+============================================================
+Accuracy: 0.9650
+
+                      precision    recall  f1-score   support
+
+   financial_reports       0.94      0.99      0.97      1731
+  government_tenders       0.99      0.94      0.97       333
+laws_and_regulations       0.98      0.87      0.92      1114
+             manuals       0.98      0.99      0.99      1853
+             patents       0.99      0.95      0.97       483
+ scientific_articles       0.94      0.98      0.96       944
+
+            accuracy                           0.97      6458
+           macro avg       0.97      0.96      0.96      6458
+        weighted avg       0.97      0.97      0.96      6458
+
+
+=== Hybrid Model Summary ===
+                 model  accuracy
+LogReg (Text + Layout)  0.968411
+    RF (Text + Layout)  0.965005

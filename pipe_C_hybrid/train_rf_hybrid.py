@@ -3,6 +3,8 @@ from pathlib import Path
 from sklearn.metrics import classification_report, accuracy_score
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.feature_extraction.text import TfidfVectorizer
+from scipy.sparse import hstack, csr_matrix
 
 # -----------------------------
 # Paths
@@ -11,60 +13,73 @@ YOLO_BASE_DIR = Path("./data/yolo_dataset")
 TEXT_DATASET_DIR = Path("./data/text_dataset")
 
 # -----------------------------
-# Load split (features + labels)
+# Load split (features + text + labels)
 # -----------------------------
 def load_split(split: str):
     # Layout features
-    features = pd.read_csv(
+    layout_df = pd.read_csv(
         YOLO_BASE_DIR / split / "layout_features.csv"
     )
 
-    # Text dataset labels (Pipeline A Splits)
+    # Text dataset
     text_df = pd.read_csv(
         TEXT_DATASET_DIR / f"{split}.csv"
     )
 
-    # page_id aus original_filename
-    text_df["page_id"] = text_df["original_filename"].apply(
-        lambda x: Path(x).stem
-    )
-
-    labels = text_df[["page_id", "label"]].rename(
-        columns={"label": "doc_class"}
-    )
-
     # Merge
-    df = features.merge(labels, on="page_id", how="inner")
+    df = layout_df.merge(text_df, on="page_id", how="inner")
 
-    print(f"[{split}] Samples after merge: {len(df)}")
+    print(f"[{split}] merged pages: {len(df)}")
 
-    X = df.drop(columns=["page_id", "doc_class"])
-    y = df["doc_class"]
+    # Layout features (numerisch)
+    X_layout = df.drop(columns=["page_id", "label" , "page_no", "text","original_filename"])
 
-    return X, y
+    # Text
+    texts = df["text"].fillna("")
+
+    y = df["label"]
+
+    return X_layout, texts, y
 
 # -----------------------------
 # Load train / val
 # -----------------------------
-X_train, y_train = load_split("train")
-X_val, y_val     = load_split("val")
-
-# Feature consistency check
-assert list(X_train.columns) == list(X_val.columns), \
-    "Feature mismatch between train and val!"
+X_layout_train, texts_train, y_train = load_split("train")
+X_layout_val,   texts_val,   y_val   = load_split("val")
 
 # -----------------------------
-# Models to compare
+# TF-IDF
+# -----------------------------
+tfidf = TfidfVectorizer(
+    max_features=30_000,
+    ngram_range=(1, 2),
+    min_df=5,
+    max_df=0.9
+)
+
+X_text_train = tfidf.fit_transform(texts_train)
+X_text_val   = tfidf.transform(texts_val)
+
+# -----------------------------
+# Combine layout + text
+# -----------------------------
+X_layout_train_sparse = csr_matrix(X_layout_train.values)
+X_layout_val_sparse   = csr_matrix(X_layout_val.values)
+
+X_train = hstack([X_layout_train_sparse, X_text_train])
+X_val   = hstack([X_layout_val_sparse,   X_text_val])
+
+# -----------------------------
+# Models
 # -----------------------------
 models = {
-    "Logistic Regression": LogisticRegression(
+    "LogReg (Text + Layout)": LogisticRegression(
         max_iter=2000,
         class_weight="balanced",
         n_jobs=-1
     ),
-    "Random Forest": RandomForestClassifier(
+    "RF (Text + Layout)": RandomForestClassifier(
         n_estimators=300,
-        max_depth=None,
         class_weight="balanced",
         random_state=42,
         n_jobs=-1
@@ -72,7 +87,7 @@ models = {
 }
 
 # -----------------------------
-# Evaluation loop
+# Evaluation
 # -----------------------------
 results = []
 
@@ -86,7 +101,6 @@ for name, model in models.items():
 
     acc = accuracy_score(y_val, y_pred)
     print(f"Accuracy: {acc:.4f}\n")
-
     print(classification_report(y_val, y_pred))
 
     results.append({
@@ -95,11 +109,11 @@ for name, model in models.items():
     })
 
 # -----------------------------
-# Summary table
+# Summary
 # -----------------------------
 summary_df = pd.DataFrame(results).sort_values(
     by="accuracy", ascending=False
 )
 
-print("\n=== Model Comparison Summary ===")
+print("\n=== Hybrid Model Summary ===")
 print(summary_df.to_string(index=False))
