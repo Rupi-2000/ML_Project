@@ -1,24 +1,42 @@
 import pandas as pd
 from pathlib import Path
+from sklearn.metrics import classification_report, accuracy_score
+from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import classification_report, confusion_matrix
 
 # -----------------------------
-# Base path
+# Paths
 # -----------------------------
-BASE_DIR = Path("./data/yolo_dataset")
+YOLO_BASE_DIR = Path("./data/yolo_dataset")
+TEXT_DATASET_DIR = Path("./data/text_dataset")
 
 # -----------------------------
-# Helper: load split
+# Load split (features + labels)
 # -----------------------------
 def load_split(split: str):
-    split_dir = BASE_DIR / split
+    # Layout features
+    features = pd.read_csv(
+        YOLO_BASE_DIR / split / "layout_features.csv"
+    )
 
-    features = pd.read_csv(split_dir / "layout_features.csv")
-    labels   = pd.read_csv(split_dir / "labels.csv")
+    # Text dataset labels (Pipeline A Splits)
+    text_df = pd.read_csv(
+        TEXT_DATASET_DIR / f"{split}.csv"
+    )
 
-    df = features.merge(labels, on="page_id")
-    print(df.head(10))
+    # page_id aus original_filename
+    text_df["page_id"] = text_df["original_filename"].apply(
+        lambda x: Path(x).stem
+    )
+
+    labels = text_df[["page_id", "label"]].rename(
+        columns={"label": "doc_class"}
+    )
+
+    # Merge
+    df = features.merge(labels, on="page_id", how="inner")
+
+    print(f"[{split}] Samples after merge: {len(df)}")
 
     X = df.drop(columns=["page_id", "doc_class"])
     y = df["doc_class"]
@@ -31,29 +49,57 @@ def load_split(split: str):
 X_train, y_train = load_split("train")
 X_val, y_val     = load_split("val")
 
-# -----------------------------
-# Sanity check
-# -----------------------------
-assert set(X_train.columns) == set(X_val.columns), "Feature-Mismatch zwischen Train und Val!"
+# Feature consistency check
+assert list(X_train.columns) == list(X_val.columns), \
+    "Feature mismatch between train and val!"
 
 # -----------------------------
-# Train RF
+# Models to compare
 # -----------------------------
-rf = RandomForestClassifier(
-    n_estimators=300,
-    max_depth=None,
-    class_weight="balanced",
-    random_state=42,
-    n_jobs=-1
+models = {
+    "Logistic Regression": LogisticRegression(
+        max_iter=2000,
+        class_weight="balanced",
+        n_jobs=-1
+    ),
+    "Random Forest": RandomForestClassifier(
+        n_estimators=300,
+        max_depth=None,
+        class_weight="balanced",
+        random_state=42,
+        n_jobs=-1
+    ),
+}
+
+# -----------------------------
+# Evaluation loop
+# -----------------------------
+results = []
+
+for name, model in models.items():
+    print(f"\n{'='*60}")
+    print(f"Model: {name}")
+    print(f"{'='*60}")
+
+    model.fit(X_train, y_train)
+    y_pred = model.predict(X_val)
+
+    acc = accuracy_score(y_val, y_pred)
+    print(f"Accuracy: {acc:.4f}\n")
+
+    print(classification_report(y_val, y_pred))
+
+    results.append({
+        "model": name,
+        "accuracy": acc
+    })
+
+# -----------------------------
+# Summary table
+# -----------------------------
+summary_df = pd.DataFrame(results).sort_values(
+    by="accuracy", ascending=False
 )
 
-rf.fit(X_train, y_train)
-
-# -----------------------------
-# Evaluate on Val
-# -----------------------------
-y_pred = rf.predict(X_val)
-
-print("=== Validation Results ===")
-print(classification_report(y_val, y_pred))
-print(confusion_matrix(y_val, y_pred))
+print("\n=== Model Comparison Summary ===")
+print(summary_df.to_string(index=False))
