@@ -18,6 +18,7 @@ def load_split(split: str):
     labels   = pd.read_csv(split_dir / "labels.csv")
 
     df = features.merge(labels, on="page_id")
+    print(df.head(10))
 
     X = df.drop(columns=["page_id", "doc_class"])
     y = df["doc_class"]
