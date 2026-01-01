@@ -20,7 +20,7 @@ TARGET_CLASSES = {
 }
 
 # CSV Header definieren
-CSV_FIELDS = ["doc_id", "original_filename", "page_no", "label", "text"]
+CSV_FIELDS = ["page_id", "original_filename", "page_no", "label", "text"]
 
 # ============================================================
 # Helpers
@@ -85,7 +85,7 @@ def process_single_json(args):
         return {
             "split": target_split,
             "row": {
-                "doc_id": json_path.stem,
+                "page_id": json_path.stem,
                 "original_filename": meta.get("original_filename"),
                 "page_no": meta.get("page_no"),
                 "label": label,
