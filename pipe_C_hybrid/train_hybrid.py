@@ -55,7 +55,7 @@ X_layout_val,   texts_val,   y_val   = load_split("val")
 # TF-IDF
 # -----------------------------
 tfidf = TfidfVectorizer(
-    max_features=20_000,
+    max_features=50_000,
     ngram_range=(1, 2),
     min_df=5,
     max_df=0.9
