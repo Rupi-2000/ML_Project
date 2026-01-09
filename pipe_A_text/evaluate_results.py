@@ -70,4 +70,51 @@ OUT_CSV = Path("./pipe_A_text/results/derived_metrics_from_cm.csv")
 metrics_df.to_csv(OUT_CSV, index=False)
 
 print(f"Saved derived metrics to: {OUT_CSV}")
-print(metrics_df.head())
+
+# =========================
+# Macro Recall & F1 je Modell
+# =========================
+model_scores = (
+    metrics_df
+    .groupby("model")[["recall", "f1"]]
+    .mean()
+    .reset_index()
+    .rename(columns={
+        "recall": "recall_macro",
+        "f1": "f1_macro"
+    })
+)
+
+print("\nMacro Scores je Modell:")
+print(model_scores)
+
+model_scores.to_csv(
+    "./pipe_A_text/results/model_scores_macro.csv",
+    index=False
+)
+
+best_model_row = model_scores.sort_values(
+    "f1_macro", ascending=False
+).iloc[0]
+
+best_model = best_model_row["model"]
+
+print(f"\nBestes Modell nach F1_macro: {best_model}")
+print(best_model_row)
+
+# =========================
+# Klassenmetriken für bestes Modell
+# =========================
+best_model_class_metrics = (
+    metrics_df[metrics_df["model"] == best_model]
+    .loc[:, ["class", "recall", "f1", "TP", "FP", "FN", "TN"]]
+    .sort_values("f1", ascending=False)
+)
+
+print(f"\nRecall & F1 je Klasse – Modell: {best_model}")
+print(best_model_class_metrics)
+
+best_model_class_metrics.to_csv(
+    f"./pipe_A_text/results/{best_model}_class_metrics.csv",
+    index=False
+)
