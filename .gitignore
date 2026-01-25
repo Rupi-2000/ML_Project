@@ -5,8 +5,6 @@ data/
 # Large artifacts
 *.zip
 *.pt
-runs/
-
 
 
 
