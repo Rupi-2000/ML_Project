@@ -1,0 +1,99 @@
+(ML_FH) PS C:\Users\rparz\Documents\GitHub\ML_Project> & C:/ProgramData/anaconda3/envs/ML_FH/python.exe c:/Users/rparz/Documents/GitHub/ML_Project/pipe_A_text/train_val_text.py
+Using 7 parallel jobs
+Train samples: 68881
+Val samples:   6458
+Dev samples:   75339 (Train + Val)
+Test samples:  4969
+Fitting TF-IDF on Dev set...
+TF-IDF shape dev : (75339, 50000)
+TF-IDF shape test: (4969, 50000)
+Generated 14 model configurations for grid search.
+
+>>> Starting Cross-Validation...
+Running CV for: LogReg_C0.1
+Running CV for: LogReg_C1.0
+Running CV for: LogReg_C5.0
+C:\ProgramData\anaconda3\envs\ML_FH\Lib\site-packages\sklearn\linear_model\_sag.py:348: ConvergenceWarning: The max_iter was reached which means the coef_ did not converge
+  warnings.warn(
+Running CV for: LogReg_C10.0
+C:\ProgramData\anaconda3\envs\ML_FH\Lib\site-packages\sklearn\linear_model\_sag.py:348: ConvergenceWarning: The max_iter was reached which means the coef_ did not converge
+  warnings.warn(
+Running CV for: LinearSVC_C0.1
+Running CV for: LinearSVC_C0.5
+Running CV for: LinearSVC_C1.0
+Running CV for: LinearSVC_C2.0
+Running CV for: MultinomialNB_a0.1
+Running CV for: MultinomialNB_a0.5
+Running CV for: MultinomialNB_a1.0
+Running CV for: RF_n100_d20
+Running CV for: RF_n200_d30
+Running CV for: RF_n300_dNone
+
+=== CV Results ===
+             model  cv_accuracy_mean  cv_f1_macro_mean
+    LinearSVC_C1.0          0.992700          0.992642
+    LinearSVC_C2.0          0.992620          0.992585
+    LinearSVC_C0.5          0.992368          0.992230
+      LogReg_C10.0          0.991346          0.991211
+       LogReg_C5.0          0.990788          0.990555
+    LinearSVC_C0.1          0.989023          0.988252
+       LogReg_C1.0          0.987709          0.986847
+     RF_n300_dNone          0.975736          0.972632
+MultinomialNB_a0.1          0.974276          0.970890
+       LogReg_C0.1          0.972697          0.968790
+MultinomialNB_a0.5          0.970706          0.965920
+MultinomialNB_a1.0          0.967056          0.959606
+       RF_n200_d30          0.940973          0.927038
+       RF_n100_d20          0.919842          0.901743
+
+Best Model: LinearSVC_C1.0 (F1 Macro: 0.9926)
+
+>>> Retraining LinearSVC_C1.0 on Data (Train+Val) and Evaluating on Test...
+
+=== Test Set Metrics ===
+accuracy            : 0.9815
+balanced_accuracy   : 0.9813
+precision_macro     : 0.9813
+recall_macro        : 0.9813
+f1_macro            : 0.9813
+precision_weighted  : 0.9815
+recall_weighted     : 0.9815
+f1_weighted         : 0.9815
+
+Saved plots and reports to pipe_A_text\results
+
+Saved plots and reports to pipe_A_text\results
+
+Saved plots and reports to pipe_A_text\results
+
+Saved plots and reports to pipe_A_text\results
+
+Saved plots and reports to pipe_A_text\results
+
+Saved plots and reports to pipe_A_text\results
+
+Saved plots and reports to pipe_A_text\results
+
+Saved compatible Test/Best-Model results to: pipe_A_text\results\all_results_text_models.csv
+(ML_FH) PS C:\Users\rparz\Documents\GitHub\ML_Project> & C:/ProgramData/anaconda3/envs/ML_FH/python.exe c:/Users/rparz/Documents/GitHub/ML_Project/pipe_A_text/evaluate_results.py
+Saved derived metrics to: pipe_A_text\results\derived_metrics_from_cm.csv
+
+Macro Scores je Modell:
+            model  recall_macro  f1_macro
+0  LinearSVC_C1.0      0.981261  0.981266
+
+Bestes Modell nach F1_macro: LinearSVC_C1.0
+model           LinearSVC_C1.0
+recall_macro          0.981261
+f1_macro              0.981266
+Name: 0, dtype: object
+
+Recall & F1 je Klasse – Modell: LinearSVC_C1.0
+                  class    recall        f1    TP  FP  FN    TN
+4               patents  0.986425  0.987542   436   5   6  4522
+1    government_tenders  0.985348  0.987156   269   3   4  4693
+0     financial_reports  0.985049  0.987035  1713  19  26  3211
+5   scientific_articles  0.991498  0.986258   933  18   8  4010
+3               manuals  0.962500  0.970996   770  16  30  4153
+2  laws_and_regulations  0.976744  0.968610   756  31  18  4164
+(ML_FH) PS C:\Users\rparz\Documents\GitHub\ML_Project>

@@ -1,0 +1,2 @@
+model,recall_macro,f1_macro
+LinearSVC_C1.0,0.9812607992296715,0.9812663131866107

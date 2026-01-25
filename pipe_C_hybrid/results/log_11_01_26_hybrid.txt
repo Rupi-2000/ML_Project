@@ -1,0 +1,81 @@
+(ML_FH) PS C:\Users\rparz\Documents\GitHub\ML_Project> & C:/ProgramData/anaconda3/envs/ML_FH/python.exe c:/Users/rparz/Documents/GitHub/ML_Project/pipe_C_hybrid/train_hybrid.py
+[train] merged pages: 68881
+[val] merged pages: 6458
+
+================ CV TRAINING ================
+
+Running CV: LogReg_C=0.1
+Running CV: LogReg_C=1.0
+Running CV: LogReg_C=5.0
+Running CV: SVM_C=0.5
+Running CV: SVM_C=1.0
+Running CV: SVM_C=2.0
+Running CV: RF_max_depth=None_n_estimators=200
+Running CV: RF_max_depth=None_n_estimators=300
+Running CV: RF_max_depth=30_n_estimators=300
+
+=== CV RESULTS (TRAIN) ===
+                             model  cv_accuracy  cv_f1_macro  cv_recall_macro
+                         SVM_C=2.0     0.992581     0.991891         0.991946
+                         SVM_C=1.0     0.992451     0.991807         0.991905
+                         SVM_C=0.5     0.992160     0.991489         0.991550
+                      LogReg_C=5.0     0.990825     0.989928         0.990303
+                      LogReg_C=1.0     0.987181     0.985731         0.986887
+RF_max_depth=None_n_estimators=300     0.984843     0.983193         0.979800
+RF_max_depth=None_n_estimators=200     0.984887     0.983076         0.979652
+  RF_max_depth=30_n_estimators=300     0.969005     0.963134         0.969267
+                      LogReg_C=0.1     0.964736     0.958917         0.964126
+
+================ FINAL EVALUATION ================
+
+
+Final model: SVM_C=2.0
+Accuracy: 0.9696500464540105
+                      precision    recall  f1-score   support
+
+   financial_reports       0.96      0.99      0.98      1731
+  government_tenders       0.99      0.95      0.97       333
+laws_and_regulations       0.97      0.92      0.94      1114
+             manuals       0.98      0.98      0.98      1853
+             patents       0.95      0.95      0.95       483
+ scientific_articles       0.96      0.98      0.97       944
+
+            accuracy                           0.97      6458
+           macro avg       0.97      0.96      0.97      6458
+        weighted avg       0.97      0.97      0.97      6458
+
+
+Final model: SVM_C=1.0
+Accuracy: 0.9708888200681326
+                      precision    recall  f1-score   support
+
+   financial_reports       0.96      0.99      0.98      1731
+  government_tenders       0.99      0.95      0.97       333
+laws_and_regulations       0.97      0.92      0.95      1114
+             manuals       0.98      0.98      0.98      1853
+             patents       0.96      0.95      0.95       483
+ scientific_articles       0.96      0.98      0.97       944
+
+            accuracy                           0.97      6458
+           macro avg       0.97      0.96      0.97      6458
+        weighted avg       0.97      0.97      0.97      6458
+
+
+Final model: SVM_C=0.5
+Accuracy: 0.9719727469804893
+                      precision    recall  f1-score   support
+
+   financial_reports       0.97      0.99      0.98      1731
+  government_tenders       0.99      0.96      0.97       333
+laws_and_regulations       0.97      0.93      0.95      1114
+             manuals       0.98      0.99      0.99      1853
+             patents       0.96      0.95      0.96       483
+ scientific_articles       0.96      0.98      0.97       944
+
+            accuracy                           0.97      6458
+           macro avg       0.97      0.97      0.97      6458
+        weighted avg       0.97      0.97      0.97      6458
+
+
+Saved results to hybrid_cv_results.csv
+(ML_FH) PS C:\Users\rparz\Documents\GitHub\ML_Project>

@@ -1,7 +1,4 @@
 /.venv310
-/pipe_A_text/results/
-/pipe_B_yolo/results/
-pipe_C_hybrid/results/
 # Datasets
 data/
 

@@ -1,106 +1,64 @@
 import pandas as pd
-import numpy as np
+import os
 from pathlib import Path
-from sklearn.metrics import (
-    classification_report, accuracy_score, balanced_accuracy_score,
-    precision_score, recall_score, f1_score, confusion_matrix
-)
-from sklearn.linear_model import LogisticRegression
-from sklearn.ensemble import RandomForestClassifier
 from sklearn.svm import LinearSVC
-from sklearn.feature_extraction.text import TfidfVectorizer
-from scipy.sparse import hstack, csr_matrix
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import (
+    classification_report, confusion_matrix, accuracy_score,
+    balanced_accuracy_score, precision_score, recall_score, f1_score
+)
 from sklearn.model_selection import StratifiedKFold, cross_validate
 import matplotlib.pyplot as plt
 import seaborn as sns
+import numpy as np
 
 
 # -----------------------------
-# Paths
+# Base path
 # -----------------------------
-YOLO_BASE_DIR = Path("./data/yolo_dataset")
-TEXT_DATASET_DIR = Path("./data/text_dataset")
-RESULTS_DIR = Path("./pipe_C_hybrid/results")
+BASE_DIR = Path("./data/yolo_dataset")
+RESULTS_DIR = Path("./pipe_B_yolo/results")
 RESULTS_DIR.mkdir(parents=True, exist_ok=True)
 
 
 # -----------------------------
-# Load split (features + text + labels)
+# Helper: load split
 # -----------------------------
 def load_split(split: str):
-    # Layout features
-    layout_df = pd.read_csv(
-        YOLO_BASE_DIR / split / "layout_features.csv"
-    )
+    split_dir = BASE_DIR / split
 
-    # Text dataset
-    text_df = pd.read_csv(
-        TEXT_DATASET_DIR / f"{split}.csv"
-    )
+    features = pd.read_csv(split_dir / "layout_features.csv")
+    labels   = pd.read_csv(split_dir / "labels.csv")
 
-    # Merge
-    df = layout_df.merge(text_df, on="page_id", how="inner")
+    df = features.merge(labels, on="page_id")
 
-    print(f"[{split}] merged pages: {len(df)}")
+    X = df.drop(columns=["page_id", "doc_class"])
+    y = df["doc_class"]
 
-    # Layout features (numerisch)
-    X_layout = df.drop(columns=["page_id", "label", "page_no", "text", "original_filename"])
-
-    # Text
-    texts = df["text"].fillna("")
-
-    y = df["label"]
-
-    return X_layout, texts, y
+    return X, y
 
 
 # -----------------------------
 # Load train / val / test
 # -----------------------------
-X_layout_train, texts_train, y_train = load_split("train")
-X_layout_val,   texts_val,   y_val   = load_split("val")
-X_layout_test,  texts_test,  y_test  = load_split("test")
+X_train, y_train = load_split("train")
+X_val, y_val     = load_split("val")
+X_test, y_test   = load_split("test")
 
-print(f"\nTrain samples: {len(y_train)}")
-print(f"Val samples:   {len(y_val)}")
-print(f"Test samples:  {len(y_test)}")
+print(f"Train samples: {len(X_train)}")
+print(f"Val samples:   {len(X_val)}")
+print(f"Test samples:  {len(X_test)}")
 
-
-# -----------------------------
-# TF-IDF
-# -----------------------------
-print("\nFitting TF-IDF...")
-tfidf = TfidfVectorizer(
-    max_features=20_000,
-    ngram_range=(1, 2),
-    min_df=10,
-    max_df=0.9
-)
-
-X_text_train = tfidf.fit_transform(texts_train)
-X_text_val   = tfidf.transform(texts_val)
-X_text_test  = tfidf.transform(texts_test)
-
-
-# -----------------------------
-# Combine layout + text
-# -----------------------------
-X_layout_train_sparse = csr_matrix(X_layout_train.values)
-X_layout_val_sparse   = csr_matrix(X_layout_val.values)
-X_layout_test_sparse  = csr_matrix(X_layout_test.values)
-
-X_train = hstack([X_layout_train_sparse, X_text_train])
-X_val   = hstack([X_layout_val_sparse,   X_text_val])
-X_test  = hstack([X_layout_test_sparse,  X_text_test])
-
-print(f"Combined feature shape (Train): {X_train.shape}")
+# Sanity check
+assert set(X_train.columns) == set(X_val.columns), "Feature-Mismatch zwischen Train und Val!"
 
 labels = sorted(y_val.unique())
 sns.set_theme(style="white")
 
 
 # ============================================================
-# Model Configurations (Grid Search)
+# Model configs (Grid Search)
 # ============================================================
 model_configs = []
 
@@ -110,8 +68,8 @@ for c in [0.1, 1.0, 5.0, 10.0]:
         f"LogReg_C{c}",
         LogisticRegression(
             C=c,
-            solver="saga",
-            max_iter=4000,
+            solver="lbfgs",
+            max_iter=2000,
             class_weight="balanced"
         )
     ))
@@ -148,7 +106,7 @@ for g in rf_grids:
         )
     ))
 
-print(f"\nGenerated {len(model_configs)} model configurations for grid search.")
+print(f"Generated {len(model_configs)} model configurations for grid search.")
 
 
 # ============================================================
@@ -183,8 +141,8 @@ cv_df = pd.DataFrame(cv_results_list).sort_values("cv_f1_macro_mean", ascending=
 print("\n=== CV Results (Train) ===")
 print(cv_df[["model", "cv_accuracy_mean", "cv_f1_macro_mean"]].to_string(index=False))
 
-cv_df.to_csv(RESULTS_DIR / "cv_results_hybrid.csv", index=False)
-print(f"\nSaved CV results to: {RESULTS_DIR / 'cv_results_hybrid.csv'}")
+cv_df.to_csv(RESULTS_DIR / "cv_results_layout.csv", index=False)
+print(f"\nSaved CV results to: {RESULTS_DIR / 'cv_results_layout.csv'}")
 
 
 # ============================================================
@@ -210,8 +168,8 @@ val_df = pd.DataFrame(val_results_list).sort_values("val_f1_macro", ascending=Fa
 print("\n=== Validation Results ===")
 print(val_df[["model", "val_accuracy", "val_f1_macro"]].to_string(index=False))
 
-val_df.to_csv(RESULTS_DIR / "val_results_hybrid.csv", index=False)
-print(f"\nSaved Validation results to: {RESULTS_DIR / 'val_results_hybrid.csv'}")
+val_df.to_csv(RESULTS_DIR / "val_results_layout.csv", index=False)
+print(f"\nSaved Validation results to: {RESULTS_DIR / 'val_results_layout.csv'}")
 
 
 # ============================================================
@@ -226,15 +184,10 @@ best_clf = next(clf for name, clf in model_configs if name == best_model_name)
 
 
 # ============================================================
-# Train Best Model on Train+Val and Evaluate on Test Set
+# Train Best Model on Train and Evaluate on Test Set
 # ============================================================
-# Combine Train + Val for final training
-from scipy.sparse import vstack
-X_train_val = vstack([X_train, X_val])
-y_train_val = pd.concat([y_train, y_val], ignore_index=True)
-
-print(f"\n>>> Retraining {best_model_name} on Train+Val ({X_train_val.shape[0]} samples) and Evaluating on Test...")
-best_clf.fit(X_train_val, y_train_val)
+print(f"\n>>> Retraining {best_model_name} on Train and Evaluating on Test...")
+best_clf.fit(X_train, y_train)
 y_pred_test = best_clf.predict(X_test)
 
 # Detailed Metrics for Test
@@ -255,8 +208,8 @@ for k, v in metrics_test.items():
 
 # Save Test Results
 test_results_df = pd.DataFrame([{"model": best_model_name, **metrics_test}])
-test_results_df.to_csv(RESULTS_DIR / "test_results_hybrid.csv", index=False)
-print(f"\nSaved Test results to: {RESULTS_DIR / 'test_results_hybrid.csv'}")
+test_results_df.to_csv(RESULTS_DIR / "test_results_layout.csv", index=False)
+print(f"\nSaved Test results to: {RESULTS_DIR / 'test_results_layout.csv'}")
 
 # Save Classification Report
 report = classification_report(y_test, y_pred_test, output_dict=True)

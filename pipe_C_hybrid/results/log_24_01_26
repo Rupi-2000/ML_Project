@@ -1,0 +1,79 @@
+(ML_FH) PS C:\Users\rparz\Documents\GitHub\ML_Project> & C:/ProgramData/anaconda3/envs/ML_FH/python.exe c:/Users/rparz/Documents/GitHub/ML_Project/pipe_C_hybrid/train_hybrid.py
+[train] merged pages: 68881
+[val] merged pages: 6458
+[test] merged pages: 4969
+
+Train samples: 68881
+Val samples:   6458
+Test samples:  4969
+
+Fitting TF-IDF...
+Combined feature shape (Train): (68881, 20026)
+
+Generated 11 model configurations for grid search.
+
+>>> Starting Cross-Validation on Train Set...
+  CV for: LogReg_C0.1
+  CV for: LogReg_C1.0
+  CV for: LogReg_C5.0
+  CV for: LogReg_C10.0
+  CV for: LinearSVC_C0.1
+  CV for: LinearSVC_C0.5
+  CV for: LinearSVC_C1.0
+  CV for: LinearSVC_C2.0
+  CV for: RF_n100_d20
+  CV for: RF_n200_d30
+  CV for: RF_n300_dNone
+
+=== CV Results (Train) ===
+         model  cv_accuracy_mean  cv_f1_macro_mean
+LinearSVC_C2.0          0.992581          0.991891
+LinearSVC_C1.0          0.992451          0.991807
+LinearSVC_C0.5          0.992160          0.991489
+LinearSVC_C0.1          0.989692          0.988448
+  LogReg_C10.0          0.983537          0.981419
+   LogReg_C5.0          0.983246          0.981122
+ RF_n300_dNone          0.982259          0.979561
+   LogReg_C1.0          0.980996          0.978283
+   RF_n200_d30          0.965230          0.957838
+   LogReg_C0.1          0.961136          0.954325
+   RF_n100_d20          0.946879          0.934882
+
+Saved CV results to: pipe_C_hybrid\results\cv_results_hybrid.csv
+
+>>> Evaluating all models on Validation Set...
+
+=== Validation Results ===
+         model  val_accuracy  val_f1_macro
+LinearSVC_C0.5      0.971973      0.968649
+LinearSVC_C1.0      0.970889      0.967251
+LinearSVC_C2.0      0.969650      0.965789
+LinearSVC_C0.1      0.968411      0.964904
+ RF_n300_dNone      0.962527      0.960781
+  LogReg_C10.0      0.965159      0.960311
+   LogReg_C5.0      0.965005      0.960104
+   LogReg_C1.0      0.963456      0.957575
+   RF_n200_d30      0.951068      0.946338
+   LogReg_C0.1      0.945339      0.929320
+   RF_n100_d20      0.934345      0.923947
+
+Saved Validation results to: pipe_C_hybrid\results\val_results_hybrid.csv
+
+Best Model (Validation F1 Macro): LinearSVC_C0.5 (F1: 0.9686)
+
+>>> Retraining LinearSVC_C0.5 on Train+Val (75339 samples) and Evaluating on Test...
+
+=== Test Set Metrics ===
+accuracy            : 0.9807
+balanced_accuracy   : 0.9815
+precision_macro     : 0.9805
+recall_macro        : 0.9815
+f1_macro            : 0.9809
+precision_weighted  : 0.9807
+recall_weighted     : 0.9807
+f1_weighted         : 0.9807
+
+Saved Test results to: pipe_C_hybrid\results\test_results_hybrid.csv
+
+Saved plots and reports to pipe_C_hybrid\results
+(ML_FH) PS C:\Users\rparz\Documents\GitHub\ML_Project> 
